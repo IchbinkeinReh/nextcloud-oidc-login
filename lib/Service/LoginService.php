@@ -102,6 +102,7 @@ class LoginService
 
         // Get UID
         $uid = $this->attr->id($profile);
+        $uid = $uid !== null ? $uid.str_replace(['/', '+', '='], ['_', '-', ''], $uid) : null;
 
         // Ensure the LDAP user exists if we are proxying for LDAP
         if ($this->config->getSystemValue('oidc_login_proxy_ldap', false)) {

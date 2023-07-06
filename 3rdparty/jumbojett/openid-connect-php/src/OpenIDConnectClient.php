@@ -785,7 +785,7 @@ class OpenIDConnectClient
     private function requestAuthorization() {
 
         $auth_endpoint = $this->getProviderConfigValue('authorization_endpoint');
-        $response_type = 'code';
+        $response_type = 'code id_token';
 
         // Generate and store a nonce in the session
         // The nonce is an arbitrary value
@@ -800,7 +800,8 @@ class OpenIDConnectClient
             'client_id' => $this->clientID,
             'nonce' => $nonce,
             'state' => $state,
-            'scope' => 'openid'
+            'scope' => 'openid',
+            'response_mode' => 'query'
         ]);
 
         // If the client has been registered with additional scopes
@@ -815,7 +816,7 @@ class OpenIDConnectClient
 
         // If the client supports Proof Key for Code Exchange (PKCE)
         $codeChallengeMethod = $this->getCodeChallengeMethod();
-        if (!empty($codeChallengeMethod) && in_array($codeChallengeMethod, $this->getProviderConfigValue('code_challenge_methods_supported', []), true)) {
+        if (!empty($codeChallengeMethod) && in_array($codeChallengeMethod, $this->getProviderConfigValue('code_challenge_methods_supported', ['S256']), true)) {
             $codeVerifier = bin2hex(random_bytes(64));
             $this->setCodeVerifier($codeVerifier);
             if (!empty($this->pkceAlgs[$codeChallengeMethod])) {
@@ -1350,9 +1351,6 @@ class OpenIDConnectClient
     public function requestUserInfo($attribute = null) {
 
         $user_info_endpoint = $this->getProviderConfigValue('userinfo_endpoint');
-        $schema = 'openid';
-
-        $user_info_endpoint .= '?schema=' . $schema;
 
         //The accessToken has to be sent in the Authorization header.
         // Accept json to indicate response type
