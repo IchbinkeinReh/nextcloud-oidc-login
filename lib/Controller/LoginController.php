@@ -96,6 +96,10 @@ class LoginController extends Controller
                 $user = $oidc->requestUserInfo();
             }
 
+            $this->session->set('access_token', $oidc->getAccessToken());
+            $this->session->set('refresh_token', $oidc->getRefreshToken());
+            $this->session->set('oidc_granted_scopes', implode(' ', $oidc->getScopes()));
+
             $this->prepareLogout($oidc);
 
             // Convert to PHP array and process
@@ -139,6 +143,10 @@ class LoginController extends Controller
 
     private function login($profile)
     {
+        if ($redirectUrl = $this->session->get('oidc_redir')) {
+            return new RedirectResponse($redirectUrl);
+        }
+
         // Redirect if already logged in
         if ($this->userSession->isLoggedIn()) {
             return new RedirectResponse($this->urlGenerator->getAbsoluteURL('/'));

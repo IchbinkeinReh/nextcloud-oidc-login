@@ -1413,7 +1413,7 @@ class OpenIDConnectClient
      * @throws OpenIDConnectClientException
      * @return mixed
      */
-    protected function fetchURL($url, $post_body = null, $headers = []) {
+    public function fetchURL($url, $post_body = null, $headers = []) {
 
         // OK cool - then let's create a new cURL resource handle
         $ch = curl_init();
@@ -1842,6 +1842,10 @@ class OpenIDConnectClient
      */
     public function getRefreshToken() {
         return $this->refreshToken;
+    }
+
+    public function setRefreshToken($refreshToken) {
+        $this->refreshToken = $refreshToken;
     }
 
     /**

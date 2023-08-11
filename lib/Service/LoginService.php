@@ -90,7 +90,14 @@ class LoginService
 
         // Set OpenID Connect Scope
         $scope = $this->config->getSystemValue('oidc_login_scope', 'openid');
+
+        
         $oidc->addScope($scope);
+
+        $additionalScopes = $this->session->get('oidc_additional_scopes');
+        if ($additionalScopes) {
+            $oidc->addScope($additionalScopes);
+        }
 
         return $oidc;
     }
