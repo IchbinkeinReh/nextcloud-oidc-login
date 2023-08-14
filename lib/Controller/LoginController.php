@@ -98,6 +98,7 @@ class LoginController extends Controller
 
             $this->session->set('access_token', $oidc->getAccessToken());
             $this->session->set('refresh_token', $oidc->getRefreshToken());
+            $this->session->set('refresh_token_valid_until', (time() + $oidc->getTokenResponse()->refresh_token_expires_in) * 1000);
             $this->session->set('oidc_granted_scopes', implode(' ', $oidc->getScopes()));
 
             $this->prepareLogout($oidc);
@@ -143,7 +144,7 @@ class LoginController extends Controller
 
     private function login($profile)
     {
-        if ($redirectUrl = $this->session->get('oidc_redir')) {
+        if ($this->userSession->isLoggedIn() && $redirectUrl = $this->session->get('oidc_redir')) {
             return new RedirectResponse($redirectUrl);
         }
 

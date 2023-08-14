@@ -109,6 +109,8 @@ class Application extends App implements IBootstrap
                         return;
                     }
 
+                    
+
                     // Properly close the session and clear the browsers storage data before
                     // redirecting to the logout url.
                     $session->set('clearingExecutionContexts', '1');
