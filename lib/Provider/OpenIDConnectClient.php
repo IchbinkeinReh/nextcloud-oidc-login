@@ -224,20 +224,6 @@ class OpenIDConnectClient extends \Jumbojett\OpenIDConnectClient
 
     public function fetchURL($url, $post_body = null, $headers = [])
     {
-        $response = $this->fetchURLHelper($url, $post_body, $headers);
-        
-        if ($this->getResponseCode() === 401) {
-            $this->refreshToken($this->getRefreshToken());
-            $this->session->set('access_token', $this->getAccessToken());
-            $this->session->set('refresh_token', $this->getRefreshToken());
-            $response = $this->fetchURLHelper($url, $post_body, $headers);
-        }
-
-        return $response;
-    }
-
-    private function fetchURLHelper($url, $post_body = null, $headers = [])
-    {
         // this must be an exact match as for IdentityServer the JWKS uri is a path below .well-knowm
         if (0 === substr_compare($url, self::WELL_KNOWN_CONFIGURATION, -\strlen(self::WELL_KNOWN_CONFIGURATION))) {
             // Cache .well-known
