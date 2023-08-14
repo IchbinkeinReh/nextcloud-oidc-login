@@ -18,6 +18,7 @@ use OCP\ISession;
 use OCP\IURLGenerator;
 use OCP\IUserSession;
 use OCP\Util;
+use OCA\OIDCLogin\Provider\OpenIDConnectClient;
 
 class Application extends App implements IBootstrap
 {
@@ -100,6 +101,30 @@ class Application extends App implements IBootstrap
             // Disable password confirmation for user
             $session->set('last-password-confirm', $container->query(ITimeFactory::class)->getTime());
 
+            $userSession->listen('\OC\User', 'logout', function () use ($session) {
+                $oidc = new OpenIDConnectClient(
+                    $session,
+                    $this->config,
+                    $this->appName,
+                );
+
+                $refresh_token = $session->get('refresh_token');
+                if ($refresh_token) {
+                    $oidc->revokeToken($refresh_token);
+                }
+
+                $access_token = $session->get('access_token');
+                if ($access_token) {
+                    $oidc->revokeToken($access_token);
+                }
+
+                $session->set('access_token', '');
+                $session->set('refresh_token', '');
+                $session->set('refresh_token_valid_until', '');
+                $session->set('refresh_token_user_name', '');
+                $session->set('oidc_granted_scopes', '');
+            });
+
             /* Redirect to logout URL on completing logout
                If do not have logout URL, go to noredir on logout */
             if ($logoutUrl = $session->get('oidc_logout_url', $noRedirLoginUrl)) {
@@ -109,7 +134,21 @@ class Application extends App implements IBootstrap
                         return;
                     }
 
-                    
+                    $oidc = new OpenIDConnectClient(
+                        $session,
+                        $this->config,
+                        $this->appName,
+                    );
+
+                    $refresh_token = $this->session->get('refresh_token');
+                    if ($refresh_token) {
+                        $oidc->revokeToken($refresh_token);
+                    }
+
+                    $access_token = $this->session->get('access_token');
+                    if ($access_token) {
+                        $oidc->revokeToken($access_token);
+                    }
 
                     // Properly close the session and clear the browsers storage data before
                     // redirecting to the logout url.

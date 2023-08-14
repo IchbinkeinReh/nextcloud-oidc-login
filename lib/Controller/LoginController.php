@@ -99,6 +99,7 @@ class LoginController extends Controller
             $this->session->set('access_token', $oidc->getAccessToken());
             $this->session->set('refresh_token', $oidc->getRefreshToken());
             $this->session->set('refresh_token_valid_until', (time() + $oidc->getTokenResponse()->refresh_token_expires_in) * 1000);
+            $this->session->set('refresh_token_user_name', $user->name);
             $this->session->set('oidc_granted_scopes', implode(' ', $oidc->getScopes()));
 
             $this->prepareLogout($oidc);
