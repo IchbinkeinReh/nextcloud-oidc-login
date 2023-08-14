@@ -225,17 +225,14 @@ class OpenIDConnectClient extends \Jumbojett\OpenIDConnectClient
     public function fetchURL($url, $post_body = null, $headers = [])
     {
         $response = $this->fetchURLHelper($url, $post_body, $headers);
-        try {
-            $json = json_decode($response);
-            if (isset($json->httpCode) && $json->httpCode === "401" && $this->getRefreshToken()) {
-                $this->refreshToken($this->getRefreshToken());
-                $this->session->set('access_token', $this->getAccessToken());
-                $this->session->set('refresh_token', $this->getRefreshToken());
-                $response = $this->fetchURLHelper($url, $post_body, $headers);
-            }
-        } catch (Exception $e) {
-            //Ignore
+        
+        if ($this->getResponseCode() === 401) {
+            $this->refreshToken($this->getRefreshToken());
+            $this->session->set('access_token', $this->getAccessToken());
+            $this->session->set('refresh_token', $this->getRefreshToken());
+            $response = $this->fetchURLHelper($url, $post_body, $headers);
         }
+
         return $response;
     }
 
