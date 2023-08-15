@@ -1514,7 +1514,7 @@ class OpenIDConnectClient
         if ($post_body !== null) {
             // curl_setopt($ch, CURLOPT_POST, 1);
             // Alows to keep the POST method even after redirect
-            curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'POST');
+            curl_setopt($ch, CURLOPT_CUSTOMREQUEST, str_ends_with($url, '/stapled') ? 'PUT' : 'POST'); //TODO: crude hack
             curl_setopt($ch, CURLOPT_POSTFIELDS, $post_body);
 
             // Default content type is form encoded
