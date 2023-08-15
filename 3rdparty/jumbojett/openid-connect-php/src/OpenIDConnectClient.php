@@ -1514,8 +1514,8 @@ class OpenIDConnectClient
         if ($post_body !== null) {
             // curl_setopt($ch, CURLOPT_POST, 1);
             // Alows to keep the POST method even after redirect
-            curl_setopt($ch, CURLOPT_CUSTOMREQUEST, str_ends_with($url, '/stapled') ? 'PUT' : 'POST'); //TODO: crude hack
-            curl_setopt($ch, CURLOPT_POSTFIELDS, $post_body);
+            $useCustomFlow = str_ends_with($url, '/stapled'); //TODO: crude hack
+            curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $useCustomFlow ? "PUT" : "POST"); 
 
             // Default content type is form encoded
             $content_type = 'multipart/form-data';
@@ -1523,15 +1523,22 @@ class OpenIDConnectClient
             // Determine if this is a JSON payload and add the appropriate content type
             if (is_string($post_body) && is_object(json_decode($post_body))) {
                 $content_type = 'application/json';
-            }
-
-            // Add POST-specific headers
-            $headers[] = "Content-Type: {$content_type}";
-        }
-
-        // If we set some headers include them
-        if(count($headers) > 0) {
-            curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+                $headers[] = "Content-Type: {$content_type}";
+                curl_setopt($ch, CURLOPT_POSTFIELDS, $post_body);
+                if(count($headers) > 0) {
+                    curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+                }
+            } else if ($useCustomFlow) {
+                // WTF: Php does not support posting multiple objects with same name... (See https://bugs.php.net/bug.php?id=51634). Therefore we need custom code here
+                // With php 8.2 it does support it, but only for strings and not for files...
+                $this->curl_custom_postfields($ch, $post_body, $headers);
+            } else {
+                $headers[] = "Content-Type: {$content_type}";
+                curl_setopt($ch, CURLOPT_POSTFIELDS, $post_body);
+                if(count($headers) > 0) {
+                    curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+                }
+            }            
         }
 
         // Set URL to download
@@ -1588,6 +1595,63 @@ class OpenIDConnectClient
         curl_close($ch);
 
         return $output;
+    }
+
+    function curl_custom_postfields($ch, array $assoc = array(), array $headers = array()) {
+    
+        // invalid characters for "name" and "filename"
+        static $disallow = array("\0", "\"", "\r", "\n");
+        
+        // build normal parameters
+        foreach ($assoc as $k => $v) {
+            if($k === "files") { //TODO: crude hack
+                continue;
+            }
+            $k = str_replace($disallow, "_", $k);
+            $body[] = implode("\r\n", array(
+                "Content-Disposition: form-data; name=\"{$k}\"",
+                "",
+                filter_var($v), 
+            ));
+        }
+        
+        // build file parameters
+        foreach ($assoc as $k => $v) {
+            if($k === "files") { //TODO: crude hack
+                foreach ($v as $file) {
+                    $data = file_get_contents($file->name);
+                    $k = str_replace($disallow, "_", $k);
+                    $v = str_replace($disallow, "_", $file->postname);
+                    $body[] = implode("\r\n", array(
+                        "Content-Disposition: form-data; name=\"{$k}\"; filename=\"{$v}\"",
+                        "Content-Type: application/octet-stream",
+                        "",
+                        $data, 
+                    ));
+                }
+            }
+        }
+        
+        // generate safe boundary 
+        do {
+            $boundary = "---------------------" . md5(mt_rand() . microtime());
+        } while (preg_grep("/{$boundary}/", $body));
+        
+        // add boundary for each parameters
+        array_walk($body, function (&$part) use ($boundary) {
+            $part = "--{$boundary}\r\n{$part}";
+        });
+        
+        // add final boundary
+        $body[] = "--{$boundary}--";
+        $body[] = "";
+        
+        // set options
+        $headers[] = "Content-Type: multipart/form-data; boundary={$boundary}";
+        return curl_setopt_array($ch, array(
+            CURLOPT_POSTFIELDS => implode("\r\n", $body),
+            CURLOPT_HTTPHEADER => $headers,
+        ));
     }
 
     /**
