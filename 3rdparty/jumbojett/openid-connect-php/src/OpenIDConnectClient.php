@@ -1539,6 +1539,10 @@ class OpenIDConnectClient
                     curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
                 }
             }            
+        } else {
+            if(count($headers) > 0) {
+                curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+            }
         }
 
         // Set URL to download
